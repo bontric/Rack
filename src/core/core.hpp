@@ -15,3 +15,11 @@ struct MidiInterfaceWidget : ModuleWidget {
 	MidiInterfaceWidget();
 	void step();
 };
+
+struct CCInterfaceWidget : ModuleWidget {
+	CCInterfaceWidget();
+	void step();
+};
+
+static bool midi_initialized = false;
+void midiInit();

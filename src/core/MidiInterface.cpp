@@ -8,10 +8,8 @@
 
 using namespace rack;
 
-static bool initialized = false;
-
 void midiInit() {
-	if (initialized)
+	if (midi_initialized)
 		return;
 
 	PmError err = Pm_Initialize();
@@ -19,7 +17,7 @@ void midiInit() {
 		printf("Failed to initialize PortMidi: %s\n", Pm_GetErrorText(err));
 		return;
 	}
-	initialized = true;
+	midi_initialized = true;
 }
 
 
@@ -35,6 +33,7 @@ struct MidiInterface : Module {
 		GATE_OUTPUT,
 		MOD_OUTPUT,
 		PITCHWHEEL_OUTPUT,
+		VELOCITY_OUTPUT,
 		NUM_OUTPUTS
 	};
 
@@ -47,6 +46,7 @@ struct MidiInterface : Module {
 	int channel = -1;
 	bool pedal = false;
 	int note = 60; // C4, most modules should use 261.626 Hz
+	int vel = 0;
 	int mod = 0;
 	int pitchWheel = 64;
 	bool retrigger = false;
@@ -63,7 +63,7 @@ struct MidiInterface : Module {
 	void setChannel(int channel) {
 		this->channel = channel;
 	}
-	void pressNote(int note);
+  void pressNote(int note, int vel);
 	void releaseNote(int note);
 	void processMidi(long msg);
 
@@ -138,6 +138,10 @@ void MidiInterface::step() {
 	if (outputs[PITCHWHEEL_OUTPUT]) {
 		*outputs[PITCHWHEEL_OUTPUT] = (pitchWheel - 64) / 64.0 * 10.0;
 	}
+
+	if (outputs[VELOCITY_OUTPUT]) {
+		*outputs[VELOCITY_OUTPUT] = vel / 127.0 * 10.0;
+	}
 }
 
 int MidiInterface::getPortCount() {
@@ -175,13 +179,14 @@ void MidiInterface::setPortId(int portId) {
 	this->portId = portId;
 }
 
-void MidiInterface::pressNote(int note) {
+void MidiInterface::pressNote(int note, int vel) {
 	// Remove existing similar note
 	auto it = std::find(notes.begin(), notes.end(), note);
 	if (it != notes.end())
 		notes.erase(it);
 	// Push note
 	notes.push_back(note);
+	this->vel = vel;
 	this->note = note;
 	retriggered = true;
 }
@@ -222,7 +227,7 @@ void MidiInterface::processMidi(long msg) {
 		} break;
 		case 0x9: // note on
 			if (data2 > 0) {
-				pressNote(data1);
+			  pressNote(data1, data2);
 			}
 			else {
 				// For some reason, some keyboards send a "note on" event with a velocity of 0 to signal that the key has been released.
@@ -373,7 +378,7 @@ MidiInterfaceWidget::MidiInterfaceWidget() {
 		yPos += labelHeight + margin;
 
 		addOutput(createOutput<PJ3410Port>(Vec(28, yPos), module, MidiInterface::PITCH_OUTPUT));
-		yPos += 37 + margin;
+		yPos += 30 + margin;
 	}
 
 	{
@@ -384,7 +389,7 @@ MidiInterfaceWidget::MidiInterfaceWidget() {
 		yPos += labelHeight + margin;
 
 		addOutput(createOutput<PJ3410Port>(Vec(28, yPos), module, MidiInterface::GATE_OUTPUT));
-		yPos += 37 + margin;
+		yPos += 30 + margin;
 	}
 
 	{
@@ -395,7 +400,7 @@ MidiInterfaceWidget::MidiInterfaceWidget() {
 		yPos += labelHeight + margin;
 
 		addOutput(createOutput<PJ3410Port>(Vec(28, yPos), module, MidiInterface::MOD_OUTPUT));
-		yPos += 37 + margin;
+		yPos += 30 + margin;
 	}
 
 	{
@@ -406,7 +411,18 @@ MidiInterfaceWidget::MidiInterfaceWidget() {
 		yPos += labelHeight + margin;
 
 		addOutput(createOutput<PJ3410Port>(Vec(28, yPos), module, MidiInterface::PITCHWHEEL_OUTPUT));
-		yPos += 37 + margin;
+		yPos += 30 + margin;
+	}
+
+	{
+		Label *label = new Label();
+		label->box.pos = Vec(margin, yPos);
+		label->text = "Velocity";
+		addChild(label);
+		yPos += labelHeight + margin;
+
+		addOutput(createOutput<PJ3410Port>(Vec(28, yPos), module, MidiInterface::VELOCITY_OUTPUT));
+		yPos += 30 + margin;
 	}
 }
 

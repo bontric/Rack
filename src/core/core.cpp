@@ -7,6 +7,7 @@ struct CorePlugin : Plugin {
 		name = "Core";
 		createModel<AudioInterfaceWidget>(this, "AudioInterface", "Audio Interface");
 		createModel<MidiInterfaceWidget>(this, "MidiInterface", "MIDI Interface");
+		createModel<CCInterfaceWidget>(this, "CCInterface", "CC Interface");
 	}
 };
 
