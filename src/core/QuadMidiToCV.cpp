@@ -98,16 +98,11 @@ void QuadMIDIToCVInterface::resetMidi() {
 void QuadMIDIToCVInterface::step() {
 	if (isPortOpen()) {
 		std::vector<unsigned char> message;
-		int msgsProcessed = 0;
 
 		// midiIn->getMessage returns empty vector if there are no messages in the queue
-		// NOTE: For the quadmidi we will process max 4 midi messages per step to avoid
-		// problems with parallel input.
 		getMessage(&message);
-		while (msgsProcessed < 4 && message.size() > 0) {
+		if (message.size() > 0) {
 			processMidi(message);
-			getMessage(&message);
-			msgsProcessed++;
 		}
 	}
 
@@ -209,6 +204,7 @@ void QuadMIDIToCVInterface::processMidi(std::vector<unsigned char> msg) {
 	switch (mode) {
 		case RESET:
 			if (open.size() >= 4) {
+				open.clear();
 				for (int i = 0; i < 4; i++) {
 					activeKeys[i].gate = false;
 					open.push_back(i);

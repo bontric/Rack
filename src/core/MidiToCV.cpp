@@ -100,9 +100,8 @@ void MIDIToCVInterface::step() {
 
 		// midiIn->getMessage returns empty vector if there are no messages in the queue
 		getMessage(&message);
-		while (message.size() > 0) {
+		if (message.size() > 0) {
 			processMidi(message);
-			getMessage(&message);
 		}
 	}
 
@@ -254,7 +253,7 @@ MidiToCVWidget::MidiToCVWidget() {
 
 	addParam(createParam<LEDButton>(Vec(7 * 15, labelHeight), module, MIDIToCVInterface::RESET_PARAM, 0.0, 1.0, 0.0));
 	addChild(createLight<SmallLight<RedLight>>(Vec(7 * 15 + 5, labelHeight + 5), module,
-											   MIDIToCVInterface::RESET_LIGHT));
+												 MIDIToCVInterface::RESET_LIGHT));
 	{
 		Label *label = new Label();
 		label->box.pos = Vec(margin, yPos);
@@ -286,7 +285,7 @@ MidiToCVWidget::MidiToCVWidget() {
 	}
 
 	std::string labels[MIDIToCVInterface::NUM_OUTPUTS] = {"1V/oct", "Gate", "Velocity", "Mod Wheel", "Pitch Wheel",
-														  "Aftertouch"};
+															"Aftertouch"};
 
 	for (int i = 0; i < MIDIToCVInterface::NUM_OUTPUTS; i++) {
 		Label *label = new Label();
