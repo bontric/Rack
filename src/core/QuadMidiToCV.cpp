@@ -177,7 +177,7 @@ void QuadMIDIToCVInterface::processMidi(std::vector<unsigned char> msg) {
 
 	if (!gate) {
 		for (int i = 0; i < 4; i++) {
-			if (activeKeys[i].pitch == data1) {
+			if (activeKeys[i].pitch == data1 && activeKeys[i].gate) {
 				activeKeys[i].gate = false;
 				activeKeys[i].vel = data2;
 				if (std::find(open.begin(), open.end(), i) != open.end()) {
