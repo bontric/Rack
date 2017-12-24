@@ -164,11 +164,10 @@ void QuadMIDIToCVInterface::processMidi(std::vector<unsigned char> msg) {
 				open.clear();
 				for (int i = 0; i < 4; i++) {
 					if (activeKeys[i].pedal_gate_released) {
+							activeKeys[i].gate = false;
 							activeKeys[i].pedal_gate_released = false;
-							continue;
+							open.push_back(i);
 					}
-					activeKeys[i].gate = false;
-					open.push_back(i);
 				}
 			}
 		}
