@@ -10,6 +10,7 @@ struct MidiKey {
 	int at = 0; // aftertouch
 	int vel = 0; // velocity
 	bool gate = false;
+	bool pedal_gate_released = false;
 };
 
 struct QuadMIDIToCVInterface : MidiIO, Module {
@@ -135,44 +136,54 @@ void QuadMIDIToCVInterface::processMidi(std::vector<unsigned char> msg) {
 		return;
 
 	switch (status) {
-		// note off
-		case 0x8: {
+	// note off
+	case 0x8: {
+		gate = false;
+	}
+	break;
+	case 0x9: // note on
+		if (data2 > 0) {
+			gate = true;
+		}
+		else {
+			// For some reason, some keyboards send a "note on" event with a velocity of 0 to signal that the key has been released.
 			gate = false;
 		}
-			break;
-		case 0x9: // note on
-			if (data2 > 0) {
-				gate = true;
-			} else {
-				// For some reason, some keyboards send a "note on" event with a velocity of 0 to signal that the key has been released.
-				gate = false;
+		break;
+	case 0xa: // channel aftertouch
+		for (int i = 0; i < 4; i++) {
+			if (activeKeys[i].pitch == data1) {
+				activeKeys[i].at = data2;
 			}
-			break;
-		case 0xa: // channel aftertouch
-			for (int i = 0; i < 4; i++) {
-				if (activeKeys[i].pitch == data1) {
-					activeKeys[i].at = data2;
-				}
-			}
-			return;
-		case 0xb: // cc
-			if (data1 == 0x40) { // pedal
-				pedal = (data2 >= 64);
-				if (!pedal) {
-					open.clear();
-					for (int i = 0; i < 4; i++) {
-						activeKeys[i].gate = false;
-						open.push_back(i);
+		}
+		return;
+	case 0xb: // cc
+		if (data1 == 0x40) { // pedal
+			pedal = (data2 >= 64);
+			if (!pedal) {
+				open.clear();
+				for (int i = 0; i < 4; i++) {
+					if (activeKeys[i].pedal_gate_released) {
+							activeKeys[i].pedal_gate_released = false;
+							continue;
 					}
+					activeKeys[i].gate = false;
+					open.push_back(i);
 				}
 			}
-			return;
-		default:
-			return;
+		}
+		return;
+	default:
+		return;
 	}
 
 	if (pedal && !gate) {
-		return;
+		for (int i = 0; i < 4; i++) {
+			if (activeKeys[i].pitch == data1) {
+				activeKeys[i].pedal_gate_released = true;
+				return;
+			}
+		}
 	}
 
 	if (!gate) {
